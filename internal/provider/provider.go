@@ -16,6 +16,8 @@ type Provider interface {
 
 func New(cfg config.ProviderConfig, client *http.Client) (Provider, error) {
 	switch cfg.Type {
+	case "mock":
+		return NewMock(cfg), nil
 	case "", "openai", "ollama":
 		return NewOpenAICompatible(cfg, client), nil
 	default:

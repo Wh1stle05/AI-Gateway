@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/Wh1stle05/AI-Gateway/internal/circuitbreaker"
 	"github.com/Wh1stle05/AI-Gateway/internal/config"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 	"github.com/Wh1stle05/AI-Gateway/internal/provider"
@@ -13,11 +14,26 @@ import (
 type Router struct {
 	cfg       *config.Config
 	providers map[string]provider.Provider
+	breakers  map[string]*circuitbreaker.Breaker
 }
 
 func New(cfg *config.Config) (*Router, error) {
 	providers := make(map[string]provider.Provider, len(cfg.Providers))
+	breakers := make(map[string]*circuitbreaker.Breaker)
 	streamClient := &http.Client{}
+
+	var cbCfg circuitbreaker.Config
+	if cfg.CircuitBreaker.Enabled {
+		threshold, openTimeout, halfOpenMax, err := cfg.CircuitBreakerSettings()
+		if err != nil {
+			return nil, err
+		}
+		cbCfg = circuitbreaker.Config{
+			FailureThreshold:    threshold,
+			OpenTimeout:         openTimeout,
+			HalfOpenMaxRequests: halfOpenMax,
+		}
+	}
 
 	for _, pcfg := range cfg.Providers {
 		if _, exists := providers[pcfg.Name]; exists {
@@ -27,10 +43,18 @@ func New(cfg *config.Config) (*Router, error) {
 		if err != nil {
 			return nil, fmt.Errorf("provider %q: %w", pcfg.Name, err)
 		}
+		if cfg.CircuitBreaker.Enabled {
+			br, ok := breakers[pcfg.Name]
+			if !ok {
+				br = circuitbreaker.New(cbCfg)
+				breakers[pcfg.Name] = br
+			}
+			p = circuitbreaker.Wrap(p, br)
+		}
 		providers[pcfg.Name] = p
 	}
 
-	return &Router{cfg: cfg, providers: providers}, nil
+	return &Router{cfg: cfg, providers: providers, breakers: breakers}, nil
 }
 
 type RouteResult struct {
@@ -101,4 +125,12 @@ func (r *Router) ChatCompletionStream(ctx context.Context, req *model.ChatComple
 
 func (r *Router) ProviderCount() int {
 	return len(r.providers)
+}
+
+func (r *Router) BreakerState(name string) (string, bool) {
+	br, ok := r.breakers[name]
+	if !ok {
+		return "", false
+	}
+	return br.State(), true
 }

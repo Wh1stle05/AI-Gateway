@@ -137,3 +137,16 @@ func UpstreamBody(err error) []byte {
 	}
 	return nil
 }
+
+// IsFailure reports whether an upstream error should trip the circuit breaker.
+// Client errors (4xx) are not counted as provider failures.
+func IsFailure(err error) bool {
+	if err == nil {
+		return false
+	}
+	var ue *UpstreamError
+	if errors.As(err, &ue) {
+		return ue.Status >= http.StatusInternalServerError
+	}
+	return true
+}

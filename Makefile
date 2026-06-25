@@ -1,4 +1,4 @@
-.PHONY: build run test tidy lint docker
+.PHONY: build run test tidy lint docker loadtest
 
 BINARY=gateway
 MAIN=./cmd/gateway
@@ -9,6 +9,9 @@ build:
 run: build
 	./bin/$(BINARY) -config config.yaml
 
+run-loadtest: build
+	./bin/$(BINARY) -config config.loadtest.yaml
+
 test:
 	go test ./...
 
@@ -17,3 +20,6 @@ tidy:
 
 docker:
 	docker build -t ai-gateway:latest .
+
+loadtest:
+	k6 run scripts/loadtest.js
