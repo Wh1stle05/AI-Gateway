@@ -1,0 +1,38 @@
+run:
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gofmt
+    - goimports
+    - misspell
+    - unconvert
+    - gocritic
+    - revive
+
+linters-settings:
+  govet:
+    shadow: true
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+  revive:
+    rules:
+      - name: exported
+        arguments:
+          - "disableStutteringCheck"
+
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gocritic

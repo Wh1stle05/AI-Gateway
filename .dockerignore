@@ -1,0 +1,10 @@
+.git
+.github
+.cursor
+bin
+docs
+deploy
+scripts
+*.md
+.golangci.yml
+.dockerignore

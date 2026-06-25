@@ -1,0 +1,85 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: ai-gateway
+  labels:
+    app.kubernetes.io/name: prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+
+    rule_files:
+      - /etc/prometheus/alerts.yml
+
+    scrape_configs:
+      - job_name: "ai-gateway"
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names:
+                - ai-gateway
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+            action: keep
+            regex: true
+          - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+            action: replace
+            target_label: __metrics_path__
+            regex: (.+)
+          - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+            action: replace
+            target_label: __address__
+            regex: ([^:]+)(?::\d+)?;(\d+)
+            replacement: $1:$2
+
+  alerts.yml: |
+    groups:
+      - name: ai-gateway
+        rules:
+          - alert: HighErrorRate
+            expr: sum(rate(aigateway_chat_errors_total[5m])) / sum(rate(aigateway_chat_requests_total[5m])) > 0.05
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High error rate on AI Gateway"
+              description: "Error rate is {{ $value | humanizePercentage }} (threshold: 5%)"
+
+          - alert: HighLatency
+            expr: histogram_quantile(0.99, sum(rate(aigateway_http_request_duration_seconds_bucket[5m])) by (le)) > 2.0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High latency on AI Gateway"
+              description: "p99 latency is {{ $value }}s (threshold: 2s)"
+
+          - alert: CircuitBreakerOpen
+            expr: aigateway_circuit_breaker_state == 1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Circuit breaker open for {{ $labels.provider }}"
+              description: "Provider {{ $labels.provider }} circuit breaker is open"
+
+          - alert: HighRateLimitRejection
+            expr: sum(rate(aigateway_ratelimit_rejected_total[5m])) > 10
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High rate limit rejections"
+              description: "Rate limit rejections per second: {{ $value }}"
+
+          - alert: GatewayDown
+            expr: up{job="ai-gateway"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "AI Gateway is down"
+              description: "AI Gateway pods are not responding to Prometheus scrape"

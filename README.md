@@ -23,6 +23,14 @@ OpenAI-compatible LLM gateway for multi-provider routing, reliability, and obser
 - **Grafana dashboard** — pre-provisioned with 11 panels (QPS, latency, tokens, errors, CB state, etc.)
 - **Metrics endpoint** — `GET /metrics` for Prometheus scraping
 
+### Phase 4
+- **CI/CD** — GitHub Actions: lint, test, build, Docker push to GHCR
+- **K8s manifests** — Deployment, Service, ConfigMap, Secret, HPA, PDB, Ingress
+- **Redis StatefulSet** — Persistent Redis for rate limiting
+- **Monitoring stack** — Prometheus + Grafana deployed to K8s
+- **Prometheus alerts** — HighErrorRate, HighLatency, CircuitBreakerOpen, HighRateLimitRejection
+- **Runbooks** — deployment, troubleshooting, scaling, monitoring
+
 ## Quick Start
 
 ### 1. Config
@@ -97,6 +105,7 @@ internal/metrics/     Prometheus metrics
 scripts/               k6 load test
 internal/gateway/      HTTP server wiring
 deploy/                Docker Compose + Prometheus + Grafana
+k8s/                   Kubernetes manifests
 docs/                  Architecture & runbooks
 ```
 
@@ -136,7 +145,21 @@ open http://localhost:3000   # admin/admin
 | **1** ✅ | Core gateway, routing, streaming, health |
 | **2** ✅ | Redis rate limit, circuit breaker, load test |
 | **3** ✅ | Prometheus metrics + Grafana dashboard |
-| **4** | CI/CD, K8s manifests, runbooks |
+| **4** ✅ | CI/CD, K8s manifests, runbooks |
+
+## Kubernetes
+
+```bash
+# Deploy to K8s
+kubectl apply -f k8s/namespace.yml
+kubectl apply -f k8s/secret.yml
+kubectl apply -f k8s/configmap.yml
+kubectl apply -f k8s/redis/
+kubectl apply -f k8s/monitoring/
+kubectl apply -f k8s/
+```
+
+See [`docs/runbooks/deployment.md`](docs/runbooks/deployment.md) for detailed instructions.
 
 ## License
 

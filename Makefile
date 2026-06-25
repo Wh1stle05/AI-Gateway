@@ -1,4 +1,4 @@
-.PHONY: build run test tidy lint docker loadtest
+.PHONY: build run test tidy lint fmt vet docker loadtest clean
 
 BINARY=gateway
 MAIN=./cmd/gateway
@@ -13,7 +13,20 @@ run-loadtest: build
 	./bin/$(BINARY) -config config.loadtest.yaml
 
 test:
-	go test ./...
+	go test -race ./...
+
+coverage:
+	go test -race -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out -o coverage.html
+
+fmt:
+	gofmt -s -w .
+
+vet:
+	go vet ./...
+
+lint:
+	golangci-lint run ./...
 
 tidy:
 	go mod tidy
@@ -23,3 +36,6 @@ docker:
 
 loadtest:
 	k6 run scripts/loadtest.js
+
+clean:
+	rm -rf bin/ coverage.out coverage.html
