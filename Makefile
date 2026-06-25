@@ -1,4 +1,4 @@
-.PHONY: build run test tidy lint fmt vet docker loadtest clean
+.PHONY: build run test tidy lint fmt vet docker loadtest clean web
 
 BINARY=gateway
 MAIN=./cmd/gateway
@@ -39,3 +39,6 @@ loadtest:
 
 clean:
 	rm -rf bin/ coverage.out coverage.html
+
+web:
+	cd web && npm run dev

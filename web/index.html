@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Gateway</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <h1>AI Gateway</h1>
+        <span class="status" id="status">●</span>
+      </div>
+      <div class="header-right">
+        <select id="model"></select>
+        <label class="toggle">
+          <input type="checkbox" id="streamToggle" checked />
+          <span>流式</span>
+        </label>
+        <button id="clearBtn" class="btn-clear">清空</button>
+      </div>
+    </header>
+
+    <main class="messages" id="messages">
+      <div class="empty" id="empty">选择模型，开始对话</div>
+    </main>
+
+    <footer class="input-area">
+      <div class="stats" id="stats"></div>
+      <div class="input-row">
+        <textarea id="input" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)" rows="1"></textarea>
+        <button id="sendBtn" class="btn-send">发送</button>
+      </div>
+    </footer>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

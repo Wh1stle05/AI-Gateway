@@ -49,6 +49,7 @@ func New(cfg *config.Config) (*Server, error) {
 	}
 
 	mux := chi.NewRouter()
+	mux.Use(middleware.CORS)
 	mux.Use(middleware.RequestID)
 	mux.Use(metrics.Middleware)
 	mux.Use(middleware.Logger)
