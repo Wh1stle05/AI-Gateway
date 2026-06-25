@@ -56,8 +56,13 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *model.ChatComp
 func (p *Provider) record(err error) {
 	name := p.inner.Name()
 	if provider.IsFailure(err) {
+		wasClosed := p.breaker.State() == "closed"
 		p.breaker.RecordFailure()
-		metrics.SetCircuitBreakerState(name, p.breaker.State())
+		newState := p.breaker.State()
+		metrics.SetCircuitBreakerState(name, newState)
+		if wasClosed && newState == "open" {
+			metrics.RecordCircuitBreakerTrip(name)
+		}
 		return
 	}
 	p.breaker.RecordSuccess()

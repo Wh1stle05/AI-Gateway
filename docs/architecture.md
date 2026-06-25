@@ -16,8 +16,8 @@ flowchart LR
   CB --> P3[Mock]
   RL --> Redis[(Redis)]
   GW --> Logs[Structured Logs]
-  GW --> /metrics
-  /metrics --> Prometheus[(Prometheus)]
+  GW --> MetricsEP["/metrics"]
+  MetricsEP --> Prometheus[(Prometheus)]
   Prometheus --> Grafana[(Grafana)]
 ```
 
@@ -95,6 +95,7 @@ Returns `429 Too Many Requests` with `Retry-After`.
 | `aigateway_provider_request_duration_seconds` | Histogram | provider, model | Upstream latency |
 | `aigateway_router_fallback_total` | Counter | model, primary_provider, fallback_provider | Fallback activations |
 | `aigateway_circuit_breaker_state` | Gauge | provider | CB state (0/1/2) |
+| `aigateway_circuit_breaker_trips_total` | Counter | provider | CB state transitions to open |
 | `aigateway_circuit_breaker_rejections_total` | Counter | provider | CB rejections |
 | `aigateway_ratelimit_allowed_total` | Counter | key_type | Rate limit allowed |
 | `aigateway_ratelimit_rejected_total` | Counter | key_type | Rate limit rejected |

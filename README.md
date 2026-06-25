@@ -95,6 +95,7 @@ Environment variables in config use `${VAR}` syntax.
 ```text
 cmd/gateway/           Entrypoint
 internal/config/       YAML config loading
+internal/model/        OpenAI-compatible types
 internal/provider/     Upstream adapters
 internal/router/       Model routing + fallback
 internal/handler/      HTTP handlers
@@ -102,8 +103,8 @@ internal/middleware/   Logging, request ID, rate limit
 internal/circuitbreaker/ Provider circuit breaker
 internal/ratelimit/    Redis token bucket
 internal/metrics/     Prometheus metrics
-scripts/               k6 load test
 internal/gateway/      HTTP server wiring
+scripts/               k6 load test
 deploy/                Docker Compose + Prometheus + Grafana
 k8s/                   Kubernetes manifests
 docs/                  Architecture & runbooks

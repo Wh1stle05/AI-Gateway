@@ -15,10 +15,7 @@ func RateLimit(limiter *ratelimit.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := rateLimitKey(r)
-			keyType, _ := strings.CutPrefix(key, "")
-			if idx := strings.Index(key, ":"); idx >= 0 {
-				keyType = key[:idx]
-			}
+			keyType := key[:strings.Index(key, ":")]
 
 			allowed, err := limiter.Allow(r.Context(), key)
 			if err != nil {

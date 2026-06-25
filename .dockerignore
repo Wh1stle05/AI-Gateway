@@ -4,6 +4,7 @@
 bin
 docs
 deploy
+k8s
 scripts
 *.md
 .golangci.yml

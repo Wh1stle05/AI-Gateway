@@ -47,7 +47,7 @@ Record your environment and paste k6 summary here:
 
 ```text
 Environment: WSL2 / local, mock provider, Redis 7
-Gateway: Go 1.26, rate_limit burst=50, rpm=600
+Gateway: Go 1.24, rate_limit burst=50, rpm=600
 
 http_reqs ..............: ~XXXX
 http_req_failed ........: ~0.X%
