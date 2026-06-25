@@ -7,6 +7,7 @@ import (
 
 	"github.com/Wh1stle05/AI-Gateway/internal/circuitbreaker"
 	"github.com/Wh1stle05/AI-Gateway/internal/config"
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 	"github.com/Wh1stle05/AI-Gateway/internal/provider"
 )
@@ -99,6 +100,7 @@ func (r *Router) ChatCompletion(ctx context.Context, req *model.ChatCompletionRe
 	if fallbackErr != nil {
 		return nil, fmt.Errorf("primary failed (%v); fallback failed (%v)", err, fallbackErr)
 	}
+	metrics.RecordFallback(req.Model, route.Provider.Name(), route.Fallback.Name())
 	return fallbackResp, nil
 }
 
@@ -120,6 +122,7 @@ func (r *Router) ChatCompletionStream(ctx context.Context, req *model.ChatComple
 	if fallbackErr != nil {
 		return nil, nil, fmt.Errorf("primary failed (%v); fallback failed (%v)", err, fallbackErr)
 	}
+	metrics.RecordFallback(req.Model, route.Provider.Name(), route.Fallback.Name())
 	return fallbackResp, route.Fallback, nil
 }
 

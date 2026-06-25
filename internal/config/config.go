@@ -12,6 +12,7 @@ import (
 type Config struct {
 	Server         ServerConfig         `yaml:"server"`
 	Gateway        GatewayConfig        `yaml:"gateway"`
+	Metrics        MetricsConfig        `yaml:"metrics"`
 	RateLimit      RateLimitConfig      `yaml:"rate_limit"`
 	CircuitBreaker CircuitBreakerConfig `yaml:"circuit_breaker"`
 	Providers      []ProviderConfig     `yaml:"providers"`
@@ -24,6 +25,11 @@ type ServerConfig struct {
 
 type GatewayConfig struct {
 	APIKey string `yaml:"api_key"`
+}
+
+type MetricsConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Path    string `yaml:"path"`
 }
 
 type RateLimitConfig struct {
@@ -80,6 +86,9 @@ func Load(path string) (*Config, error) {
 func (c *Config) applyDefaults() {
 	if c.Server.Addr == "" {
 		c.Server.Addr = ":8080"
+	}
+	if c.Metrics.Path == "" {
+		c.Metrics.Path = "/metrics"
 	}
 	if c.RateLimit.RequestsPerMinute == 0 {
 		c.RateLimit.RequestsPerMinute = 60

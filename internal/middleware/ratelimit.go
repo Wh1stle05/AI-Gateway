@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 	"github.com/Wh1stle05/AI-Gateway/internal/ratelimit"
 )
@@ -14,16 +15,23 @@ func RateLimit(limiter *ratelimit.Limiter) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			key := rateLimitKey(r)
+			keyType, _ := strings.CutPrefix(key, "")
+			if idx := strings.Index(key, ":"); idx >= 0 {
+				keyType = key[:idx]
+			}
+
 			allowed, err := limiter.Allow(r.Context(), key)
 			if err != nil {
 				writeRateLimitError(w, http.StatusServiceUnavailable, "rate_limit_unavailable", "Rate limiter unavailable")
 				return
 			}
 			if !allowed {
+				metrics.RecordRateLimitRejected(keyType)
 				w.Header().Set("Retry-After", strconv.Itoa(limiter.RetryAfterSeconds()))
 				writeRateLimitError(w, http.StatusTooManyRequests, "rate_limit_exceeded", "Rate limit exceeded")
 				return
 			}
+			metrics.RecordRateLimitAllowed(keyType)
 			next.ServeHTTP(w, r)
 		})
 	}

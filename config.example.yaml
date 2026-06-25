@@ -4,6 +4,10 @@ server:
 gateway:
   api_key: ${GATEWAY_API_KEY}
 
+metrics:
+  enabled: true
+  path: /metrics
+
 rate_limit:
   enabled: true
   redis_url: redis://127.0.0.1:6379/0

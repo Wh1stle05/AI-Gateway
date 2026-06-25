@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 	"github.com/Wh1stle05/AI-Gateway/internal/provider"
 )
@@ -27,6 +28,8 @@ func (p *Provider) BreakerState() string {
 
 func (p *Provider) ChatCompletion(ctx context.Context, req *model.ChatCompletionRequest) (*model.ChatCompletionResponse, error) {
 	if !p.breaker.Allow() {
+		metrics.RecordCircuitBreakerRejection(p.inner.Name())
+		metrics.SetCircuitBreakerState(p.inner.Name(), "open")
 		return nil, ErrOpen
 	}
 
@@ -37,6 +40,8 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *model.ChatCompletion
 
 func (p *Provider) ChatCompletionStream(ctx context.Context, req *model.ChatCompletionRequest) (*http.Response, error) {
 	if !p.breaker.Allow() {
+		metrics.RecordCircuitBreakerRejection(p.inner.Name())
+		metrics.SetCircuitBreakerState(p.inner.Name(), "open")
 		return nil, ErrOpen
 	}
 
@@ -49,9 +54,12 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *model.ChatComp
 }
 
 func (p *Provider) record(err error) {
+	name := p.inner.Name()
 	if provider.IsFailure(err) {
 		p.breaker.RecordFailure()
+		metrics.SetCircuitBreakerState(name, p.breaker.State())
 		return
 	}
 	p.breaker.RecordSuccess()
+	metrics.SetCircuitBreakerState(name, p.breaker.State())
 }

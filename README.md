@@ -18,6 +18,11 @@ OpenAI-compatible LLM gateway for multi-provider routing, reliability, and obser
 - **Mock provider** — fast local responses for load testing
 - **k6 load test** — see [`docs/load-test.md`](docs/load-test.md)
 
+### Phase 3
+- **Prometheus metrics** — request rate, latency, tokens, errors, circuit breaker state, rate limit stats
+- **Grafana dashboard** — pre-provisioned with 11 panels (QPS, latency, tokens, errors, CB state, etc.)
+- **Metrics endpoint** — `GET /metrics` for Prometheus scraping
+
 ## Quick Start
 
 ### 1. Config
@@ -69,6 +74,7 @@ See [`config.example.yaml`](config.example.yaml).
 |---------|---------|
 | `server.addr` | Listen address (default `:8080`) |
 | `gateway.api_key` | Optional client auth for the gateway |
+| `metrics` | Prometheus endpoint (`enabled`, `path`) |
 | `rate_limit` | Redis token-bucket (`enabled`, `redis_url`, `rpm`, `burst`) |
 | `circuit_breaker` | Per-provider breaker thresholds |
 | `providers` | Upstream LLM backends |
@@ -87,9 +93,10 @@ internal/handler/      HTTP handlers
 internal/middleware/   Logging, request ID, rate limit
 internal/circuitbreaker/ Provider circuit breaker
 internal/ratelimit/    Redis token bucket
+internal/metrics/     Prometheus metrics
 scripts/               k6 load test
 internal/gateway/      HTTP server wiring
-deploy/                Docker Compose
+deploy/                Docker Compose + Prometheus + Grafana
 docs/                  Architecture & runbooks
 ```
 
@@ -110,13 +117,25 @@ cp config.example.yaml config.yaml
 docker compose -f deploy/docker-compose.yml up --build
 ```
 
+Services: gateway (`:8080`), redis (`:6379`), prometheus (`:9090`), grafana (`:3000`).
+
+## Metrics & Monitoring
+
+```bash
+# View metrics
+curl http://localhost:8080/metrics
+
+# Grafana dashboard
+open http://localhost:3000   # admin/admin
+```
+
 ## Roadmap
 
 | Phase | Focus |
 |-------|--------|
 | **1** ✅ | Core gateway, routing, streaming, health |
 | **2** ✅ | Redis rate limit, circuit breaker, load test |
-| **3** | Prometheus metrics + Grafana dashboard |
+| **3** ✅ | Prometheus metrics + Grafana dashboard |
 | **4** | CI/CD, K8s manifests, runbooks |
 
 ## License

@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/Wh1stle05/AI-Gateway/internal/config"
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 )
 
@@ -48,25 +50,32 @@ func (p *OpenAICompatible) ChatCompletion(ctx context.Context, req *model.ChatCo
 	}
 	p.setHeaders(httpReq)
 
+	start := time.Now()
 	resp, err := p.client.Do(httpReq)
+	duration := time.Since(start)
 	if err != nil {
+		metrics.RecordProviderRequest(p.name, req.Model, "error", duration)
 		return nil, fmt.Errorf("upstream request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
+		metrics.RecordProviderRequest(p.name, req.Model, "error", duration)
 		return nil, fmt.Errorf("read upstream response: %w", err)
 	}
 
 	if resp.StatusCode >= http.StatusBadRequest {
+		metrics.RecordProviderRequest(p.name, req.Model, strconv.Itoa(resp.StatusCode), duration)
 		return nil, parseUpstreamError(resp.StatusCode, respBody)
 	}
 
 	var out model.ChatCompletionResponse
 	if err := json.Unmarshal(respBody, &out); err != nil {
+		metrics.RecordProviderRequest(p.name, req.Model, "error", duration)
 		return nil, fmt.Errorf("decode upstream response: %w", err)
 	}
+	metrics.RecordProviderRequest(p.name, req.Model, "200", duration)
 	return &out, nil
 }
 
@@ -83,18 +92,23 @@ func (p *OpenAICompatible) ChatCompletionStream(ctx context.Context, req *model.
 	p.setHeaders(httpReq)
 	httpReq.Header.Set("Accept", "text/event-stream")
 
+	start := time.Now()
 	resp, err := p.client.Do(httpReq)
+	duration := time.Since(start)
 	if err != nil {
+		metrics.RecordProviderRequest(p.name, req.Model, "error", duration)
 		return nil, fmt.Errorf("upstream request: %w", err)
 	}
 	if resp.StatusCode >= http.StatusBadRequest {
 		defer resp.Body.Close()
 		respBody, readErr := io.ReadAll(resp.Body)
+		metrics.RecordProviderRequest(p.name, req.Model, strconv.Itoa(resp.StatusCode), duration)
 		if readErr != nil {
 			return nil, fmt.Errorf("upstream status %d: read body: %w", resp.StatusCode, readErr)
 		}
 		return nil, parseUpstreamError(resp.StatusCode, respBody)
 	}
+	metrics.RecordProviderRequest(p.name, req.Model, "200", duration)
 	return resp, nil
 }
 

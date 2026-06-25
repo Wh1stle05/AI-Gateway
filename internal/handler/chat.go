@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Wh1stle05/AI-Gateway/internal/config"
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/middleware"
 	"github.com/Wh1stle05/AI-Gateway/internal/model"
 	"github.com/Wh1stle05/AI-Gateway/internal/provider"
@@ -61,10 +62,16 @@ func (h *ChatHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *ChatHandler) handleJSON(w http.ResponseWriter, r *http.Request, req *model.ChatCompletionRequest) {
+	metrics.RecordChatRequest(req.Model, false)
+
 	resp, err := h.router.ChatCompletion(r.Context(), req)
 	if err != nil {
-		h.writeRouteError(w, r, err)
+		h.writeRouteError(w, r, req.Model, err)
 		return
+	}
+
+	if resp.Usage != nil {
+		metrics.RecordChatTokens(req.Model, resp.Usage.PromptTokens, resp.Usage.CompletionTokens)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -75,9 +82,11 @@ func (h *ChatHandler) handleJSON(w http.ResponseWriter, r *http.Request, req *mo
 }
 
 func (h *ChatHandler) handleStream(w http.ResponseWriter, r *http.Request, req *model.ChatCompletionRequest) {
+	metrics.RecordChatRequest(req.Model, true)
+
 	upstream, usedProvider, err := h.router.ChatCompletionStream(r.Context(), req)
 	if err != nil {
-		h.writeRouteError(w, r, err)
+		h.writeRouteError(w, r, req.Model, err)
 		return
 	}
 	defer upstream.Body.Close()
@@ -101,11 +110,12 @@ func (h *ChatHandler) handleStream(w http.ResponseWriter, r *http.Request, req *
 	}
 }
 
-func (h *ChatHandler) writeRouteError(w http.ResponseWriter, r *http.Request, err error) {
+func (h *ChatHandler) writeRouteError(w http.ResponseWriter, r *http.Request, model string, err error) {
 	requestID := middleware.GetRequestID(r.Context())
 	slog.Error("chat completion failed", "error", err, "request_id", requestID)
 
 	if status, ok := provider.StatusCode(err); ok {
+		metrics.RecordChatError(model, "upstream_error")
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("X-Request-ID", requestID)
 		w.WriteHeader(status)
@@ -119,10 +129,12 @@ func (h *ChatHandler) writeRouteError(w http.ResponseWriter, r *http.Request, er
 
 	msg := err.Error()
 	if strings.Contains(msg, "no provider configured") || strings.Contains(msg, "requires") {
+		metrics.RecordChatError(model, "validation_error")
 		writeError(w, http.StatusBadRequest, "invalid_request", msg)
 		return
 	}
 
+	metrics.RecordChatError(model, "upstream_error")
 	writeError(w, http.StatusBadGateway, "upstream_error", msg)
 }
 

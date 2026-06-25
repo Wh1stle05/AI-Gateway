@@ -7,10 +7,12 @@ import (
 
 	"github.com/Wh1stle05/AI-Gateway/internal/config"
 	"github.com/Wh1stle05/AI-Gateway/internal/handler"
+	"github.com/Wh1stle05/AI-Gateway/internal/metrics"
 	"github.com/Wh1stle05/AI-Gateway/internal/middleware"
 	"github.com/Wh1stle05/AI-Gateway/internal/ratelimit"
 	"github.com/Wh1stle05/AI-Gateway/internal/router"
 	"github.com/go-chi/chi/v5"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -48,6 +50,7 @@ func New(cfg *config.Config) (*Server, error) {
 
 	mux := chi.NewRouter()
 	mux.Use(middleware.RequestID)
+	mux.Use(metrics.Middleware)
 	mux.Use(middleware.Logger)
 	mux.Use(middleware.Recoverer)
 	if s.limiter != nil {
@@ -59,6 +62,7 @@ func New(cfg *config.Config) (*Server, error) {
 
 	mux.Get("/health", health.Live)
 	mux.Get("/ready", health.Ready)
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.Post("/v1/chat/completions", chat.ServeHTTP)
 
 	s.http = &http.Server{
