@@ -1,0 +1,11 @@
+services:
+  gateway:
+    build: ..
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../config.yaml:/app/config.yaml:ro
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GATEWAY_API_KEY: ${GATEWAY_API_KEY:-}
+    restart: unless-stopped

@@ -1,0 +1,31 @@
+server:
+  addr: ":8080"
+
+gateway:
+  # Optional. When set, clients must send Authorization: Bearer <key>
+  api_key: ${GATEWAY_API_KEY}
+
+providers:
+  - name: openai
+    type: openai
+    base_url: https://api.openai.com/v1
+    api_key: ${OPENAI_API_KEY}
+    timeout: 120s
+    models:
+      - gpt-4o-mini
+      - gpt-4o
+
+  - name: ollama
+    type: openai
+    base_url: http://127.0.0.1:11434/v1
+    timeout: 120s
+    models:
+      - llama3.2
+      - qwen2.5
+
+routing:
+  - model: gpt-4o-mini
+    provider: openai
+    fallback: ollama
+  - model: llama3.2
+    provider: ollama
